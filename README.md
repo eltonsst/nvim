@@ -1,211 +1,309 @@
 # Neovim Configuration
 
-A single-file Neovim setup optimized for Scala, Go, and Gleam development. Based on [kickstart.nvim](https://github.com/nvim-kickstart/kickstart.nvim), simplified into one `init.lua` with everything included.
+Single-file Neovim setup for Scala, Go, Gleam, and general backend work.
+It started from [kickstart.nvim](https://github.com/nvim-kickstart/kickstart.nvim), but it is now a custom `lazy.nvim` config with:
+
+- native LSP hover/signature popups styled to match Kanagawa
+- a polished floating [Oil](https://github.com/stevearc/oil.nvim) explorer
+- Scala/Metals support with per-project Java resolution via `.sdkmanrc`
+- Go debugging and test running
+- documented plugin sections directly inside `init.lua`
 
 ## Requirements
 
-- **Neovim** >= 0.10 (`brew install neovim`)
-- **Git** (`brew install git`)
-- **ripgrep** for live grep search (`brew install ripgrep`)
-- **make** for building telescope-fzf-native
-- **[Nerd Font](https://www.nerdfonts.com/)** for icons (recommended: JetBrainsMono Nerd Font)
+- **Neovim** >= 0.11
+- **Git**
+- **ripgrep** for Telescope live grep
+- **make** for `telescope-fzf-native`
+- **[Nerd Font](https://www.nerdfonts.com/)** for icons
 
-### For Scala development
+### Scala
 
-- **[SDKMAN](https://sdkman.io/)** for managing Java versions
-- Java 17+ (for the Metals LSP server)
-- A `.sdkmanrc` file in your project root specifying the Java version
+- **[SDKMAN](https://sdkman.io/)** for Java version management
+- Java 17+ for the Metals server
+- A `.sdkmanrc` file in your project root when the project needs a specific Java version
+
+### Optional external tools
+
+Most LSP servers, formatters, linters, and debugger tools are auto-installed through Mason / mason-tool-installer.
+
+Not managed by Mason in this setup:
+
+- `gleam` LSP support: install `gleam` yourself
+- `metals`: managed by `nvim-metals`
 
 ## Installation
 
 ```bash
-# Back up your existing config (if any)
+# Back up existing config
 mv ~/.config/nvim ~/.config/nvim.bak
 
 # Clone this repo
 git clone https://github.com/YOUR_USERNAME/nvim.git ~/.config/nvim
 
-# Start Neovim — plugins will auto-install on first launch
+# Start Neovim
 nvim
 ```
 
-On first launch, lazy.nvim will automatically download and install all plugins. This may take a minute. You'll also want to run `:Mason` to verify LSP servers are installed.
+On first launch, `lazy.nvim` installs the plugin set automatically.
+
+Useful commands after startup:
+
+- `:checkhealth`
+- `:Lazy`
+- `:Mason`
+- `:TSUpdate`
 
 ## File Structure
 
-```
+```text
 ~/.config/nvim/
-├── init.lua        ← entire configuration (single file)
-├── .stylua.toml    ← Lua formatter settings
+├── init.lua        # entire config
+├── README.md
+├── lazy-lock.json  # pinned plugin versions
+├── .stylua.toml
 └── .gitignore
 ```
 
-That's it. No `lua/` directory, no scattered plugin files.
+There is no `lua/` directory. Everything lives in `init.lua`.
 
-## Keybinding Reference
+## Defaults
 
-The leader key is **Space**. Press it and wait — [which-key](https://github.com/folke/which-key.nvim) will show all available bindings.
+- Leader key: `Space`
+- Colorscheme: `kanagawa-dragon`
+- Alternate colorscheme installed: `catppuccin`
+- Hover docs on `K` use native Neovim LSP with rounded borders and Kanagawa-matched background
+- Oil opens in a styled floating window on `\`
+- Files auto-save on `BufLeave`, `FocusLost`, and `InsertLeave`
+
+## Keybindings
+
+Press `Space` and wait to see available leader mappings through `which-key`.
 
 ### Navigation
 
 | Key | Action |
 |-----|--------|
 | `Ctrl+h/j/k/l` | Move between split windows |
-| `Shift+H` / `Shift+L` | Previous / next buffer tab |
-| `\` | Toggle file explorer (Neo-tree) |
+| `Shift+H` / `Shift+L` | Previous / next buffer |
+| `\` | Toggle floating Oil explorer |
+| `-` | Open parent directory in the current window |
+| `<leader>zz` | Toggle Zen mode |
 | `[q` / `]q` | Previous / next quickfix item |
+| `<leader>qo` / `<leader>qc` | Open / close quickfix |
 
-### Search (Telescope)
-
-| Key | Action |
-|-----|--------|
-| `<leader>sf` | Find files by name |
-| `<leader>sg` | Grep (search text) across all files |
-| `<leader>sd` | Search diagnostics (errors/warnings) |
-| `<leader>s.` | Recently opened files |
-| `<leader>/` | Search within the current file |
-| `<leader><leader>` | Switch between open buffers |
-| `<leader>sk` | Search all keybindings |
-| `<leader>sh` | Search help documentation |
-
-### LSP (code intelligence)
+### Search
 
 | Key | Action |
 |-----|--------|
-| `K` | Hover documentation (type info, docs) |
+| `<leader>sh` | Help tags |
+| `<leader>sk` | Keymaps |
+| `<leader>sf` | Find files |
+| `<leader>ss` | Telescope builtins |
+| `<leader>sw` | Search current word |
+| `<leader>sg` | Live grep |
+| `<leader>sd` | Workspace diagnostics to quickfix |
+| `<leader>sr` | Resume last Telescope picker |
+| `<leader>s.` | Recent files |
+| `<leader>/` | Search in current buffer |
+| `<leader>s/` | Grep in open files |
+| `<leader>sn` | Search Neovim config files |
+| `<leader><leader>` | Open buffers |
+
+### LSP
+
+| Key | Action |
+|-----|--------|
+| `K` | Hover documentation |
 | `grd` | Go to definition |
-| `grr` | Find all references |
-| `gri` | Go to implementation |
-| `grn` | Rename symbol across the project |
-| `gra` | Code actions (quick fixes, refactors) |
-| `gO` | Document symbols (outline of current file) |
-| `<leader>e` | Show full error message in a float |
-| `<leader>th` | Toggle inlay hints (inline type annotations) |
-| `<leader>f` | Format the current buffer |
+| `grD` | Go to declaration |
+| `grr` | References |
+| `gri` | Implementation |
+| `grt` | Type definition |
+| `grn` | Rename |
+| `gra` | Code action |
+| `gO` | Document symbols |
+| `gW` | Workspace symbols |
+| `<leader>e` | Diagnostic float for current line |
+| `<leader>f` | Format buffer |
+| `<leader>th` | Toggle inlay hints when supported |
 
 ### Git
 
 | Key | Action |
 |-----|--------|
-| `<leader>gs` | Git status (fugitive) |
-| `<leader>gb` | Git blame |
-| `<leader>gd` | Diff current file against index |
-| `<leader>gm` | **3-way merge** for conflict resolution |
-| `<leader>gl` | Git log |
-| `<leader>gp` | Git push |
-| `]c` / `[c` | Jump between git hunks / diff conflicts |
-| `<leader>hs` | Stage hunk |
-| `<leader>hr` | Reset hunk |
+| `]c` / `[c` | Next / previous git hunk |
+| `<leader>hs` / `<leader>hr` | Stage / reset hunk |
+| `<leader>hS` / `<leader>hu` | Stage buffer / undo staged hunk |
+| `<leader>hR` | Reset buffer |
 | `<leader>hp` | Preview hunk |
 | `<leader>hb` | Blame current line |
+| `<leader>hd` / `<leader>hD` | Diff against index / last commit |
 | `<leader>tb` | Toggle inline blame |
+| `<leader>tD` | Preview deleted lines inline |
 
-### Git Conflict Resolution
+### Merge Conflicts
 
-When you have merge conflicts, this setup provides IntelliJ-style 3-panel resolution:
-
-1. Open a file with conflicts
-2. Press `<leader>gm` to open the 3-way split:
-   ```
-   ┌──────────┬──────────┬──────────┐
-   │  LEFT    │  MIDDLE  │  RIGHT   │
-   │  (ours)  │ (working)│ (theirs) │
-   └──────────┴──────────┴──────────┘
-   ```
-3. Put your cursor in the **middle** pane, then:
-   - `]c` / `[c` — jump between conflicts
-   - `:diffget //2` — take the change from the left (ours)
-   - `:diffget //3` — take the change from the right (theirs)
-   - Or just edit the middle pane manually
-4. `:w` to save, then `:only` to close the side panes
+| Key | Action |
+|-----|--------|
+| `]x` / `[x` | Next / previous conflict |
+| `<leader>go` | Choose ours |
+| `<leader>gt` | Choose theirs |
+| `<leader>gb` | Choose both |
+| `<leader>g0` | Choose none |
+| `<leader>gq` | Remaining conflicts to quickfix |
 
 ### Scala / Metals
 
 | Key | Action |
 |-----|--------|
-| `<leader>mc` | Metals commands menu |
-| `<leader>mi` | Import build (download dependencies) |
+| `<leader>mc` | Metals commands |
+| `<leader>mi` | Import build |
 | `<leader>mo` | Organize imports |
-| `<leader>mr` | Run code lens (run/test above classes) |
-| `<leader>mt` | Toggle metals tree view |
+| `<leader>mr` | Run code lens |
+| `<leader>mt` | Toggle tree view |
+| `<leader>mf` | Reveal file in tree view |
 
-### Debugging (DAP)
+### Debugging
 
 | Key | Action |
 |-----|--------|
-| `<leader>dc` | Start / continue debugging |
+| `<leader>dc` | Start / continue |
 | `<leader>db` | Toggle breakpoint |
 | `<leader>dso` | Step over |
 | `<leader>dsi` | Step into |
-| `<leader>dK` | Hover value (inspect variable) |
 | `<leader>dr` | Toggle REPL |
+| `<leader>dK` | Hover value |
 
-### Toggles
+### Tests
 
 | Key | Action |
 |-----|--------|
-| `<leader>th` | Toggle inlay hints |
-| `<leader>tb` | Toggle inline git blame |
-| `<leader>ti` | Toggle indent guides |
-| `<leader>tD` | Toggle deleted lines preview |
+| `<leader>tn` | Run nearest test |
+| `<leader>tf` | Run current file tests |
+| `<leader>ts` | Toggle test summary |
+| `<leader>to` | Open test output |
 
 ### Buffers
 
 | Key | Action |
 |-----|--------|
-| `Shift+H` / `Shift+L` | Cycle through buffer tabs |
-| `<leader>bp` | Pin/unpin buffer |
+| `Shift+H` / `Shift+L` | Previous / next buffer |
+| `<leader>bp` | Pin / unpin buffer |
 | `<leader>bc` | Close buffer |
 
 ## Included Plugins
 
-| Plugin | Purpose |
-|--------|---------|
-| [lazy.nvim](https://github.com/folke/lazy.nvim) | Plugin manager |
-| [telescope.nvim](https://github.com/nvim-telescope/telescope.nvim) | Fuzzy finder |
-| [nvim-treesitter](https://github.com/nvim-treesitter/nvim-treesitter) | Syntax highlighting |
-| [nvim-lspconfig](https://github.com/neovim/nvim-lspconfig) | LSP configuration |
-| [mason.nvim](https://github.com/mason-org/mason.nvim) | LSP/tool installer |
-| [blink.cmp](https://github.com/saghen/blink.cmp) | Autocompletion |
-| [conform.nvim](https://github.com/stevearc/conform.nvim) | Code formatting |
-| [gitsigns.nvim](https://github.com/lewis6991/gitsigns.nvim) | Git gutter signs |
-| [vim-fugitive](https://github.com/tpope/vim-fugitive) | Git commands |
-| [neo-tree.nvim](https://github.com/nvim-neo-tree/neo-tree.nvim) | File explorer |
-| [bufferline.nvim](https://github.com/akinsho/bufferline.nvim) | Buffer tabs |
-| [which-key.nvim](https://github.com/folke/which-key.nvim) | Keybinding popup |
-| [mini.nvim](https://github.com/echasnovski/mini.nvim) | Statusline, surround, text objects |
-| [nvim-metals](https://github.com/scalameta/nvim-metals) | Scala LSP (Metals) |
-| [nvim-dap](https://github.com/mfussenegger/nvim-dap) | Debug adapter |
-| [kanagawa.nvim](https://github.com/rebelot/kanagawa.nvim) | Colorscheme |
-| [LuaSnip](https://github.com/L3MON4D3/LuaSnip) | Snippet engine |
-| [fidget.nvim](https://github.com/j-hui/fidget.nvim) | LSP progress indicator |
-| [todo-comments.nvim](https://github.com/folke/todo-comments.nvim) | Highlight TODO/FIXME |
-| [indent-blankline.nvim](https://github.com/lukas-reineke/indent-blankline.nvim) | Indent guides |
+### Core UI and navigation
+
+- [lazy.nvim](https://github.com/folke/lazy.nvim)
+- [which-key.nvim](https://github.com/folke/which-key.nvim)
+- [telescope.nvim](https://github.com/nvim-telescope/telescope.nvim)
+- [telescope-fzf-native.nvim](https://github.com/nvim-telescope/telescope-fzf-native.nvim)
+- [telescope-smart-history.nvim](https://github.com/nvim-telescope/telescope-smart-history.nvim)
+- [telescope-ui-select.nvim](https://github.com/nvim-telescope/telescope-ui-select.nvim)
+- [bufferline.nvim](https://github.com/akinsho/bufferline.nvim)
+- [mini.nvim](https://github.com/echasnovski/mini.nvim)
+- [oil.nvim](https://github.com/stevearc/oil.nvim)
+- [zen-mode.nvim](https://github.com/folke/zen-mode.nvim)
+
+### Editing
+
+- [guess-indent.nvim](https://github.com/NMAC427/guess-indent.nvim)
+- [nvim-autopairs](https://github.com/windwp/nvim-autopairs)
+- [blink.cmp](https://github.com/saghen/blink.cmp)
+- [LuaSnip](https://github.com/L3MON4D3/LuaSnip)
+- [conform.nvim](https://github.com/stevearc/conform.nvim)
+- [nvim-lint](https://github.com/mfussenegger/nvim-lint)
+- [todo-comments.nvim](https://github.com/folke/todo-comments.nvim)
+
+### Syntax and language tooling
+
+- [nvim-treesitter](https://github.com/nvim-treesitter/nvim-treesitter)
+- [nvim-lspconfig](https://github.com/neovim/nvim-lspconfig)
+- [mason.nvim](https://github.com/mason-org/mason.nvim)
+- [mason-lspconfig.nvim](https://github.com/mason-org/mason-lspconfig.nvim)
+- [mason-tool-installer.nvim](https://github.com/WhoIsSethDaniel/mason-tool-installer.nvim)
+- [lazydev.nvim](https://github.com/folke/lazydev.nvim)
+- [SchemaStore.nvim](https://github.com/b0o/SchemaStore.nvim)
+- [fidget.nvim](https://github.com/j-hui/fidget.nvim)
+- [nvim-metals](https://github.com/scalameta/nvim-metals)
+
+### Git, debugging, and tests
+
+- [gitsigns.nvim](https://github.com/lewis6991/gitsigns.nvim)
+- [git-conflict.nvim](https://github.com/akinsho/git-conflict.nvim)
+- [nvim-dap](https://github.com/mfussenegger/nvim-dap)
+- [nvim-dap-go](https://github.com/leoluz/nvim-dap-go)
+- [neotest](https://github.com/nvim-neotest/neotest)
+- [neotest-golang](https://github.com/fredrikaverpil/neotest-golang)
+
+### Theme
+
+- [kanagawa.nvim](https://github.com/rebelot/kanagawa.nvim)
+- [catppuccin](https://github.com/catppuccin/nvim)
 
 ## LSP Servers
 
-Managed by Mason (auto-installed):
-- **lua_ls** — Lua
-- **gopls** — Go
-- **jsonls** — JSON
-- **yamlls** — YAML
-- **dockerls** — Dockerfile
+Configured in the `servers` table:
 
-Not managed by Mason:
-- **gleam** — Gleam (install with `brew install gleam`)
-- **metals** — Scala (managed by nvim-metals plugin)
+- `lua_ls`
+- `gopls`
+- `jsonls`
+- `yamlls`
+- `dockerls`
+- `pyright`
+
+Enabled separately outside Mason:
+
+- `gleam`
+- `metals`
+
+## Formatters, Linters, and Tools
+
+### Formatters
+
+- Lua: `stylua`
+- Scala: `scalafmt`
+- Go: `goimports`, `gofumpt`
+- YAML: `yamlfmt`
+- Python: `ruff_organize_imports`, `ruff_format`
+
+### Linters
+
+- YAML: `yamllint`
+- Proto: `protolint`
+- Python: `mypy`
+
+### Debug / test tools
+
+- Go debugging: `delve`
+- Go tests: `neotest-golang`
 
 ## Customization
 
-Everything is in `init.lua`. The file is organized into clearly labeled sections:
+Everything lives in `init.lua`, organized into labeled sections:
 
-1. **Leader key** — change your prefix key
-2. **Options** — Neovim behavior settings
-3. **Keymaps** — non-plugin keybindings
-4. **Autocommands** — automatic actions (autosave, yank highlight)
-5. **Java version** — Scala/SDKMAN configuration
-6. **Plugins** — all plugin specs with inline comments
+1. Leader key
+2. Options
+3. Built-in keymaps
+4. Autocommands
+5. Java version resolution for Metals
+6. Plugin specs and configuration
 
-To add a new LSP server, add it to the `servers` table in the LSP section and restart Neovim. Mason will install it automatically.
+Common edits:
 
-To change the colorscheme, find `vim.cmd.colorscheme 'kanagawa-dragon'` and replace it. Available: `kanagawa`, `kanagawa-wave`, `kanagawa-dragon`, `kanagawa-lotus`, `gruber-darker`.
+- Change colorscheme:
+  edit the final `vim.cmd.colorscheme 'kanagawa-dragon'`
+- Add an LSP server:
+  add it to the `servers` table in the LSP section
+- Add a formatter:
+  update `formatters_by_ft` in the `conform.nvim` section
+- Add a linter:
+  update `linters_by_ft` in the `nvim-lint` section
+
+## Notes
+
+- The hover popup on `K` is native Neovim LSP, not a UI plugin.
+- Oil and hover floats are styled to match the main Kanagawa background.
+- Quickfix is a first-class workflow in this setup, especially for diagnostics and merge conflicts.

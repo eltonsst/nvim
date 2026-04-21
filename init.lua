@@ -24,21 +24,6 @@
 vim.g.mapleader = ' '
 vim.g.maplocalleader = ' '
 
--- ============================================================================
--- NEOVIDE (GPU-accelerated GUI for Neovim)
--- ============================================================================
--- Neovide is an optional desktop app that renders Neovim with smooth
--- animations and GPU acceleration. Install with: brew install --cask neovide
--- Launch with: neovide (it reads this same config automatically)
--- These settings only apply when running inside Neovide; they are
--- silently ignored in a regular terminal.
-
-if vim.g.neovide then
-  vim.o.guifont = 'JetBrainsMono Nerd Font Mono'
-  vim.g.neovide_scale_factor = 1
-  vim.opt.linespace = 2
-end
-
 -- Tell plugins we have a Nerd Font installed (enables icons everywhere)
 vim.g.have_nerd_font = true
 
@@ -47,32 +32,32 @@ vim.g.have_nerd_font = true
 -- ============================================================================
 -- These control how Neovim looks and behaves. Each setting is explained below.
 
-vim.o.number = true           -- show line numbers in the gutter
-vim.o.foldmethod = 'expr'     -- use treesitter for code folding
+vim.o.number = true -- show line numbers in the gutter
+vim.o.foldmethod = 'expr' -- use treesitter for code folding
 vim.o.foldexpr = 'nvim_treesitter#foldexpr()'
-vim.o.foldlevel = 99          -- start with all folds open (99 = don't fold anything)
-vim.o.mouse = 'a'             -- enable mouse in all modes (click, scroll, select)
-vim.o.showmode = false         -- hide "-- INSERT --" from the bottom (statusline shows it)
+vim.o.foldlevel = 99 -- start with all folds open (99 = don't fold anything)
+vim.o.mouse = 'a' -- enable mouse in all modes (click, scroll, select)
+vim.o.showmode = false -- hide "-- INSERT --" from the bottom (statusline shows it)
 vim.schedule(function()
   vim.o.clipboard = 'unnamedplus' -- use system clipboard for yank/paste (y, p, d, etc.)
 end)
-vim.o.breakindent = true       -- wrapped lines continue at the same indent level
-vim.o.undofile = true          -- persist undo history across sessions (saved to disk)
-vim.o.ignorecase = true        -- search is case-insensitive by default...
-vim.o.smartcase = true         -- ...unless you type an uppercase letter
-vim.o.signcolumn = 'yes'      -- always show the sign column (git signs, diagnostics)
-vim.o.updatetime = 250         -- ms of idle before CursorHold fires (affects LSP highlights)
-vim.o.timeoutlen = 300         -- ms to wait for a mapped key sequence (e.g. <leader>sf)
-vim.o.splitright = true        -- new vertical splits open to the right
-vim.o.splitbelow = true        -- new horizontal splits open below
-vim.o.list = true              -- show invisible characters (tabs, trailing spaces)
+vim.o.breakindent = true -- wrapped lines continue at the same indent level
+vim.o.undofile = true -- persist undo history across sessions (saved to disk)
+vim.o.ignorecase = true -- search is case-insensitive by default...
+vim.o.smartcase = true -- ...unless you type an uppercase letter
+vim.o.signcolumn = 'yes' -- always show the sign column (git signs, diagnostics)
+vim.o.updatetime = 250 -- ms of idle before CursorHold fires (affects LSP highlights)
+vim.o.timeoutlen = 300 -- ms to wait for a mapped key sequence (e.g. <leader>sf)
+vim.o.splitright = true -- new vertical splits open to the right
+vim.o.splitbelow = true -- new horizontal splits open below
+vim.o.list = true -- show invisible characters (tabs, trailing spaces)
 vim.opt.listchars = { tab = '» ', trail = '·', nbsp = '␣' }
-vim.o.inccommand = 'split'    -- live preview of :s substitutions in a split
-vim.o.cursorline = true        -- highlight the line your cursor is on
-vim.o.scrolloff = 10           -- keep 10 lines visible above/below cursor when scrolling
-vim.o.confirm = true           -- ask to save instead of failing on :q with unsaved changes
-vim.o.swapfile = false         -- don't create .swp files (we have undofile + autosave)
-vim.o.tabstop = 4              -- display tab characters as 4 spaces wide
+vim.o.inccommand = 'split' -- live preview of :s substitutions in a split
+vim.o.cursorline = true -- highlight the line your cursor is on
+vim.o.scrolloff = 10 -- keep 10 lines visible above/below cursor when scrolling
+vim.o.confirm = true -- ask to save instead of failing on :q with unsaved changes
+vim.o.swapfile = false -- don't create .swp files (we have undofile + autosave)
+vim.o.tabstop = 4 -- display tab characters as 4 spaces wide
 
 -- ============================================================================
 -- KEYMAPS (built-in, no plugins required)
@@ -81,12 +66,35 @@ vim.o.tabstop = 4              -- display tab characters as 4 spaces wide
 -- Clear search highlighting by pressing Escape
 vim.keymap.set('n', '<Esc>', '<cmd>nohlsearch<CR>')
 
--- Show all diagnostics (errors/warnings) for the current buffer in a list
-vim.keymap.set('n', '<leader>q', vim.diagnostic.setloclist, { desc = 'Open diagnostic [Q]uickfix list' })
-
 -- Show the full error/warning message in a floating window at the current line
 -- (much easier to read than the truncated inline text)
-vim.keymap.set('n', '<leader>e', vim.diagnostic.open_float, { desc = 'Show diagnostic [E]rror float' })
+local function open_diagnostic_float()
+  local _, winid = vim.diagnostic.open_float(nil, {
+    scope = 'line',
+    focusable = true,
+    border = 'rounded',
+    source = 'if_many',
+    max_width = math.floor(vim.o.columns * 0.6),
+    max_height = math.floor(vim.o.lines * 0.3),
+  })
+
+  if winid then
+    vim.wo[winid].wrap = true
+    vim.wo[winid].linebreak = true
+  end
+end
+
+vim.keymap.set('n', '<leader>e', open_diagnostic_float, { desc = 'Show diagnostic [E]rror float' })
+
+local function wrap_floating_window(winid, highlight)
+  if winid then
+    vim.wo[winid].wrap = true
+    vim.wo[winid].linebreak = true
+    if highlight then
+      vim.api.nvim_set_option_value('winhighlight', highlight, { scope = 'local', win = winid })
+    end
+  end
+end
 
 -- Press Escape twice in terminal mode to go back to normal mode
 -- (useful when running :terminal or lazygit inside Neovim)
@@ -104,6 +112,11 @@ vim.keymap.set('n', '<leader>qc', ':cclose<CR>', { desc = '[Q]uickfix [C]lose' }
 vim.keymap.set('n', '[q', ':cprevious<CR>', { desc = 'Previous quickfix item' })
 vim.keymap.set('n', ']q', ':cnext<CR>', { desc = 'Next quickfix item' })
 
+local function open_workspace_diagnostics()
+  vim.diagnostic.setqflist { open = false }
+  vim.cmd.copen()
+end
+
 -- ============================================================================
 -- AUTOCOMMANDS (things that happen automatically in response to events)
 -- ============================================================================
@@ -114,6 +127,17 @@ vim.api.nvim_create_autocmd('TextYankPost', {
   group = vim.api.nvim_create_augroup('highlight-yank', { clear = true }),
   callback = function()
     vim.hl.on_yank()
+  end,
+})
+
+vim.api.nvim_create_autocmd('FileType', {
+  desc = 'Wrap quickfix entries so long diagnostics remain readable',
+  group = vim.api.nvim_create_augroup('quickfix-wrap', { clear = true }),
+  pattern = 'qf',
+  callback = function()
+    vim.opt_local.wrap = true
+    vim.opt_local.linebreak = true
+    vim.opt_local.breakindent = true
   end,
 })
 
@@ -245,16 +269,17 @@ require('lazy').setup({
   -- --------------------------------------------------------------------------
   -- Git
   -- --------------------------------------------------------------------------
-  -- Two git plugins working together:
-  --   gitsigns = gutter indicators + hunk-level operations (stage, reset, preview)
-  --   fugitive = full git commands (:Git status, blame, diff, push, merge)
+  -- Two focused git tools:
+  --   gitsigns     = gutter indicators + hunk-level operations (stage, reset, preview)
+  --   git-conflict = merge-conflict resolution when markers are present
   --
   -- Common workflow:
   --   ]c / [c           → jump between changed hunks
   --   <leader>hp        → preview what changed in this hunk
   --   <leader>hs        → stage this hunk
-  --   <leader>gs        → open git status (fugitive)
-  --   <leader>gm        → 3-way merge for conflict resolution (see below)
+  --   ]x / [x           → jump between merge conflicts
+  --   <leader>go        → choose ours for the current conflict
+  --   <leader>gt        → choose theirs for the current conflict
 
   { -- Shows +/~/- signs in the gutter for git changes
     'lewis6991/gitsigns.nvim',
@@ -300,7 +325,7 @@ require('lazy').setup({
         map('n', '<leader>hs', gs.stage_hunk, { desc = 'git [s]tage hunk' })
         map('n', '<leader>hr', gs.reset_hunk, { desc = 'git [r]eset hunk' })
         map('n', '<leader>hS', gs.stage_buffer, { desc = 'git [S]tage buffer' })
-        map('n', '<leader>hu', gs.stage_hunk, { desc = 'git [u]ndo stage hunk' })
+        map('n', '<leader>hu', gs.undo_stage_hunk, { desc = 'git [u]ndo stage hunk' })
         map('n', '<leader>hR', gs.reset_buffer, { desc = 'git [R]eset buffer' })
         map('n', '<leader>hp', gs.preview_hunk, { desc = 'git [p]review hunk' })
         map('n', '<leader>hb', gs.blame_line, { desc = 'git [b]lame line' })
@@ -316,31 +341,36 @@ require('lazy').setup({
     },
   },
 
-  { -- Git commands via :Git (fugitive.vim by Tim Pope)
-    --
-    -- Conflict resolution workflow (like IntelliJ's 3-panel merge):
-    --   1. Open a file with merge conflicts
-    --   2. Press <leader>gm to open the 3-way split:
-    --      ┌──────────┬──────────┬──────────┐
-    --      │  LEFT    │  MIDDLE  │  RIGHT   │
-    --      │  (ours)  │ (working)│ (theirs) │
-    --      │  //2     │  file    │  //3     │
-    --      └──────────┴──────────┴──────────┘
-    --   3. Put cursor in the MIDDLE pane, then:
-    --      ]c / [c             → jump between conflicts
-    --      :diffget //2        → take change from LEFT (ours)
-    --      :diffget //3        → take change from RIGHT (theirs)
-    --      (or just edit the middle pane manually)
-    --   4. :w then :only when done
-    'tpope/vim-fugitive',
-    cmd = { 'Git', 'G', 'Gvdiffsplit', 'Gread', 'Gwrite' },
+  { -- Conflict-focused merge resolution
+    'akinsho/git-conflict.nvim',
+    version = '*',
+    event = 'BufReadPost',
+    cmd = {
+      'GitConflictChooseOurs',
+      'GitConflictChooseTheirs',
+      'GitConflictChooseBoth',
+      'GitConflictChooseNone',
+      'GitConflictNextConflict',
+      'GitConflictPrevConflict',
+      'GitConflictListQf',
+    },
+    opts = {
+      default_mappings = false,
+      default_commands = true,
+      disable_diagnostics = false,
+      highlights = {
+        incoming = 'DiffAdd',
+        current = 'DiffText',
+      },
+    },
     keys = {
-      { '<leader>gs', '<cmd>Git<CR>', desc = '[G]it [S]tatus' },
-      { '<leader>gb', '<cmd>Git blame<CR>', desc = '[G]it [B]lame' },
-      { '<leader>gd', '<cmd>Gvdiffsplit<CR>', desc = '[G]it [D]iff split' },
-      { '<leader>gm', '<cmd>Gvdiffsplit!<CR>', desc = '[G]it [M]erge 3-way (conflicts)' },
-      { '<leader>gl', '<cmd>Git log --oneline<CR>', desc = '[G]it [L]og' },
-      { '<leader>gp', '<cmd>Git push<CR>', desc = '[G]it [P]ush' },
+      { '<leader>go', '<cmd>GitConflictChooseOurs<CR>', desc = '[G]it conflict choose [O]urs' },
+      { '<leader>gt', '<cmd>GitConflictChooseTheirs<CR>', desc = '[G]it conflict choose [T]heirs' },
+      { '<leader>gb', '<cmd>GitConflictChooseBoth<CR>', desc = '[G]it conflict choose [B]oth' },
+      { '<leader>g0', '<cmd>GitConflictChooseNone<CR>', desc = '[G]it conflict choose [0] none' },
+      { '<leader>gq', '<cmd>GitConflictListQf<CR>', desc = '[G]it conflict [Q]uickfix list' },
+      { ']x', '<cmd>GitConflictNextConflict<CR>', desc = 'Next git conflict' },
+      { '[x', '<cmd>GitConflictPrevConflict<CR>', desc = 'Previous git conflict' },
     },
   },
 
@@ -357,13 +387,14 @@ require('lazy').setup({
       icons = { mappings = vim.g.have_nerd_font, keys = vim.g.have_nerd_font and {} or nil },
       spec = {
         { '<leader>s', group = '[S]earch' },
-        { '<leader>t', group = '[T]oggle' },
+        { '<leader>t', group = '[T]oggle & [T]est' },
         { '<leader>g', group = '[G]it' },
         { '<leader>h', group = 'Git [H]unk', mode = { 'n', 'v' } },
         { '<leader>m', group = '[M]etals (Scala)' },
         { '<leader>d', group = '[D]ebug' },
         { '<leader>b', group = '[B]uffer' },
         { '<leader>q', group = '[Q]uickfix' },
+        { '<leader>z', group = '[Z]en' },
       },
     },
   },
@@ -372,7 +403,7 @@ require('lazy').setup({
     -- This is the Swiss Army knife of navigation. Key bindings:
     --   <leader>sf  → find files by name
     --   <leader>sg  → grep (search text) across all files
-    --   <leader>sd  → search diagnostics (errors/warnings)
+    --   <leader>sd  → open workspace diagnostics in a wrapped quickfix list
     --   <leader>s.  → recently opened files
     --   <leader>/   → search within the current file
     --   <leader><leader> → switch between open buffers
@@ -387,10 +418,15 @@ require('lazy').setup({
           return vim.fn.executable 'make' == 1
         end,
       },
+      'nvim-telescope/telescope-smart-history.nvim', -- remember previous searches across restarts
+      'kkharji/sqlite.lua', -- storage backend for telescope-smart-history
       { 'nvim-telescope/telescope-ui-select.nvim' }, -- use telescope for vim.ui.select
       { 'nvim-tree/nvim-web-devicons', enabled = vim.g.have_nerd_font },
     },
     config = function()
+      local telescope_history_dir = vim.fs.joinpath(vim.fn.stdpath 'data', 'databases')
+      local telescope_history = vim.fs.joinpath(telescope_history_dir, 'telescope_history.sqlite3')
+      vim.fn.mkdir(telescope_history_dir, 'p')
       require('telescope').setup {
         defaults = {
           -- Hide build artifacts and dependency folders from search results
@@ -399,10 +435,17 @@ require('lazy').setup({
           path_display = {
             filename_first = { reverse_directories = false },
           },
+          history = {
+            path = telescope_history,
+            limit = 100,
+          },
         },
-        extensions = { ['ui-select'] = { require('telescope.themes').get_dropdown() } },
+        extensions = {
+          ['ui-select'] = { require('telescope.themes').get_dropdown() },
+        },
       }
       pcall(require('telescope').load_extension, 'fzf')
+      pcall(require('telescope').load_extension, 'smart_history')
       pcall(require('telescope').load_extension, 'ui-select')
 
       local builtin = require 'telescope.builtin'
@@ -412,7 +455,7 @@ require('lazy').setup({
       vim.keymap.set('n', '<leader>ss', builtin.builtin, { desc = '[S]earch [S]elect Telescope' })
       vim.keymap.set('n', '<leader>sw', builtin.grep_string, { desc = '[S]earch current [W]ord' })
       vim.keymap.set('n', '<leader>sg', builtin.live_grep, { desc = '[S]earch by [G]rep' })
-      vim.keymap.set('n', '<leader>sd', builtin.diagnostics, { desc = '[S]earch [D]iagnostics' })
+      vim.keymap.set('n', '<leader>sd', open_workspace_diagnostics, { desc = '[S]how workspace [D]iagnostics' })
       vim.keymap.set('n', '<leader>sr', builtin.resume, { desc = '[S]earch [R]esume' })
       vim.keymap.set('n', '<leader>s.', builtin.oldfiles, { desc = '[S]earch Recent Files' })
       vim.keymap.set('n', '<leader><leader>', builtin.buffers, { desc = 'Find existing buffers' })
@@ -445,7 +488,6 @@ require('lazy').setup({
           always_show_bufferline = true,
           separator_style = { '', '' },
           indicator = { style = 'icon', icon = '▎' },
-          offsets = { { filetype = 'neo-tree', text = 'File Explorer', highlight = 'Directory' } },
         },
       }
     end,
@@ -482,15 +524,34 @@ require('lazy').setup({
         keywordStyle = { italic = false },
         statementStyle = { bold = true },
         colors = { theme = { all = { ui = { bg_gutter = 'none' } } } },
+        overrides = function(colors)
+          return {
+            NormalFloat = { fg = colors.theme.ui.fg, bg = colors.theme.ui.bg },
+            FloatBorder = { fg = colors.theme.ui.float.fg_border, bg = colors.theme.ui.bg },
+            FloatTitle = { fg = colors.theme.ui.special, bg = colors.theme.ui.bg, bold = true },
+            OilFloat = { fg = colors.theme.ui.fg, bg = colors.theme.ui.bg },
+            OilFloatBorder = { fg = colors.theme.ui.float.fg_border, bg = colors.theme.ui.bg },
+            OilFloatTitle = { fg = colors.theme.ui.special, bg = colors.theme.ui.bg, bold = true },
+          }
+        end,
       }
     end,
   },
-  { -- Gruber Darker colorscheme (alternative, switch with :colorscheme gruber-darker)
-    'blazkowolf/gruber-darker.nvim',
+  { -- Catppuccin (light alternative: :colorscheme catppuccin-latte)
+    'catppuccin/nvim',
+    name = 'catppuccin',
     priority = 1000,
     config = function()
-      require('gruber-darker').setup()
-      vim.cmd.colorscheme 'kanagawa-dragon' -- active colorscheme (change here to switch)
+      require('catppuccin').setup {
+        integrations = {
+          blink_cmp = true,
+          gitsigns = true,
+          mini = { enabled = true },
+          telescope = { enabled = true },
+          treesitter = true,
+          which_key = true,
+        },
+      }
     end,
   },
 
@@ -498,32 +559,59 @@ require('lazy').setup({
   -- File explorer
   -- --------------------------------------------------------------------------
 
-  { -- Neo-tree: sidebar file browser (toggle with \)
-    -- Inside neo-tree: a = new file, d = delete, r = rename, c = copy, m = move
-    -- group_empty_dirs collapses long Java/Scala paths like src/main/scala/com/...
-    'nvim-neo-tree/neo-tree.nvim',
-    version = '*',
-    dependencies = { 'nvim-lua/plenary.nvim', 'nvim-tree/nvim-web-devicons', 'MunifTanjim/nui.nvim' },
+  { -- Oil: directory editor / lightweight file explorer
+    -- `\\` opens a floating explorer, `-` opens the parent directory in-place.
+    -- This keeps file navigation simple while staying closer to normal editing.
+    'stevearc/oil.nvim',
+    dependencies = { 'nvim-tree/nvim-web-devicons' },
     lazy = false,
     keys = {
-      { '\\', ':Neotree reveal<CR>', desc = 'NeoTree reveal', silent = true },
+      {
+        '\\',
+        function()
+          require('oil').toggle_float()
+        end,
+        desc = 'Open file explorer',
+      },
+      { '-', '<cmd>Oil<CR>', desc = 'Open parent directory' },
     },
     opts = {
-      default_component_configs = {
-        indent = { indent_size = 2 },
-        file_size = { enabled = false },    -- hide file sizes to keep the panel narrow
-        last_modified = { enabled = false }, -- hide timestamps
+      columns = { 'icon' },
+      win_options = {
+        wrap = false,
+        signcolumn = 'no',
+        cursorcolumn = false,
+        foldcolumn = '0',
+        spell = false,
+        list = false,
       },
-      window = { width = 40 },
-      filesystem = {
-        group_empty_dirs = true, -- collapse empty directories into one line
-        filtered_items = { visible = true, hide_dotfiles = false, hide_gitignored = false },
-        window = {
-          mappings = {
-            ['\\'] = 'close_window',
-            ['i'] = 'show_file_details', -- show full path/size in a popup
-          },
+      default_file_explorer = true,
+      delete_to_trash = true,
+      skip_confirm_for_simple_edits = true,
+      keymaps = {
+        ['q'] = 'actions.close',
+        ['<Esc>'] = { 'actions.close', mode = 'n' },
+        ['<C-h>'] = false,
+        ['<C-l>'] = false,
+        ['<C-k>'] = false,
+        ['<C-j>'] = false,
+      },
+      view_options = {
+        show_hidden = true,
+      },
+      float = {
+        padding = 1,
+        max_width = 0.72,
+        max_height = 0.78,
+        border = 'rounded',
+        win_options = {
+          winblend = 0,
+          winhighlight = 'NormalFloat:OilFloat,FloatBorder:OilFloatBorder,FloatTitle:OilFloatTitle',
         },
+        get_win_title = function()
+          return ' Oil '
+        end,
+        preview_split = 'right',
       },
     },
   },
@@ -541,9 +629,27 @@ require('lazy').setup({
     main = 'nvim-treesitter.configs',
     opts = {
       ensure_installed = {
-        'bash', 'c', 'diff', 'gleam', 'go', 'gomod', 'gosum', 'gotmpl',
-        'html', 'json', 'lua', 'luadoc', 'markdown', 'markdown_inline',
-        'proto', 'query', 'scala', 'sql', 'vim', 'vimdoc', 'yaml',
+        'bash',
+        'c',
+        'diff',
+        'gleam',
+        'go',
+        'gomod',
+        'gosum',
+        'gotmpl',
+        'html',
+        'json',
+        'lua',
+        'luadoc',
+        'markdown',
+        'markdown_inline',
+        'proto',
+        'query',
+        'scala',
+        'sql',
+        'vim',
+        'vimdoc',
+        'yaml',
       },
       auto_install = true, -- automatically install parsers for new filetypes
       highlight = { enable = true, additional_vim_regex_highlighting = { 'ruby' } },
@@ -581,13 +687,40 @@ require('lazy').setup({
   { -- LSP configuration + Mason for installing servers
     'neovim/nvim-lspconfig',
     dependencies = {
-      { 'mason-org/mason.nvim', opts = {} },       -- LSP/tool installer UI (:Mason)
-      'mason-org/mason-lspconfig.nvim',             -- bridges Mason and lspconfig
-      'WhoIsSethDaniel/mason-tool-installer.nvim',  -- auto-install specified tools
-      { 'j-hui/fidget.nvim', opts = {} },           -- shows LSP progress in bottom-right
-      'saghen/blink.cmp',                           -- completion engine (provides capabilities)
+      { 'mason-org/mason.nvim', opts = {} }, -- LSP/tool installer UI (:Mason)
+      'mason-org/mason-lspconfig.nvim', -- bridges Mason and lspconfig
+      'WhoIsSethDaniel/mason-tool-installer.nvim', -- auto-install specified tools
+      { 'j-hui/fidget.nvim', opts = {} }, -- shows LSP progress in bottom-right
+      'saghen/blink.cmp', -- completion engine (provides capabilities)
+      'b0o/SchemaStore.nvim', -- bundled JSON/YAML schemas (GitLab CI, Docker Compose, k8s, etc.)
     },
     config = function()
+      local hover_handler = vim.lsp.with(vim.lsp.handlers.hover, {
+        border = 'rounded',
+        focusable = true,
+        max_width = math.floor(vim.o.columns * 0.6),
+        max_height = math.floor(vim.o.lines * 0.3),
+      })
+
+      local signature_handler = vim.lsp.with(vim.lsp.handlers.signature_help, {
+        border = 'rounded',
+        focusable = true,
+        max_width = math.floor(vim.o.columns * 0.6),
+        max_height = math.floor(vim.o.lines * 0.3),
+      })
+
+      vim.lsp.handlers['textDocument/hover'] = function(err, result, ctx, config)
+        local bufnr, winid = hover_handler(err, result, ctx, config)
+        wrap_floating_window(winid, 'NormalFloat:LspFloat,FloatBorder:LspFloatBorder,FloatTitle:LspFloatTitle')
+        return bufnr, winid
+      end
+
+      vim.lsp.handlers['textDocument/signatureHelp'] = function(err, result, ctx, config)
+        local bufnr, winid = signature_handler(err, result, ctx, config)
+        wrap_floating_window(winid, 'NormalFloat:LspFloat,FloatBorder:LspFloatBorder,FloatTitle:LspFloatTitle')
+        return bufnr, winid
+      end
+
       -- Set up keymaps when an LSP server attaches to a buffer
       vim.api.nvim_create_autocmd('LspAttach', {
         group = vim.api.nvim_create_augroup('lsp-attach', { clear = true }),
@@ -597,6 +730,16 @@ require('lazy').setup({
             vim.keymap.set(mode, keys, func, { buffer = event.buf, desc = 'LSP: ' .. desc })
           end
 
+          map('K', function()
+            vim.lsp.buf.hover {
+              border = 'rounded',
+              title = ' Info ',
+              title_pos = 'center',
+              focusable = true,
+              max_width = math.floor(vim.o.columns * 0.6),
+              max_height = math.floor(vim.o.lines * 0.3),
+            }
+          end, 'Hover Documentation')
           map('grn', vim.lsp.buf.rename, '[R]e[n]ame')
           map('gra', vim.lsp.buf.code_action, '[G]oto Code [A]ction', { 'n', 'x' })
           map('grr', require('telescope.builtin').lsp_references, '[G]oto [R]eferences')
@@ -660,9 +803,15 @@ require('lazy').setup({
 
       -- How diagnostics (errors/warnings) appear in the editor
       vim.diagnostic.config {
-        severity_sort = true,                                        -- show errors before warnings
-        float = { border = 'rounded', source = 'if_many' },         -- floating window style
-        underline = { severity = vim.diagnostic.severity.ERROR },    -- only underline errors
+        severity_sort = true, -- show errors before warnings
+        float = {
+          border = 'rounded',
+          source = 'if_many',
+          focusable = true,
+          max_width = math.floor(vim.o.columns * 0.6),
+          max_height = math.floor(vim.o.lines * 0.3),
+        },
+        underline = { severity = vim.diagnostic.severity.ERROR }, -- only underline errors
         signs = vim.g.have_nerd_font and {
           text = {
             [vim.diagnostic.severity.ERROR] = '󰅚 ',
@@ -671,7 +820,8 @@ require('lazy').setup({
             [vim.diagnostic.severity.HINT] = '󰌶 ',
           },
         } or {},
-        virtual_text = { source = 'if_many', spacing = 2 },         -- inline text after the line
+        virtual_text = false,
+        virtual_lines = false,
       }
 
       local capabilities = require('blink.cmp').get_lsp_capabilities()
@@ -681,39 +831,111 @@ require('lazy').setup({
       local servers = {
         lua_ls = { settings = { Lua = { completion = { callSnippet = 'Replace' } } } },
         gopls = {
+          -- Settings adapted from TJ DeVries's config — he's a Go core contributor,
+          -- so these are effectively the authoritative defaults for gopls in nvim.
           settings = {
             gopls = {
-              analyses = { unusedparams = true },
-              staticcheck = true,
-              gofumpt = true,
+              analyses = {
+                unusedparams = true, -- flag function parameters that are never read
+                shadow = true, -- warn when an outer variable is shadowed
+                nilness = true, -- catch nil-dereference bugs
+                unusedwrite = true, -- flag stores to variables that are never read
+              },
+              staticcheck = true, -- extra linting beyond `go vet`
+              gofumpt = true, -- stricter formatting on top of gofmt
+              usePlaceholders = true, -- fill function arguments on completion
+              completeUnimported = true, -- autocomplete types/funcs from unimported packages
+              experimentalPostfixCompletions = true, -- e.g. typing `xs.for` expands to a for-range loop
+              codelenses = { -- run/test/tidy buttons shown above functions
+                generate = true,
+                test = true,
+                tidy = true,
+                upgrade_dependency = true,
+              },
+              -- Inline type annotations shown in gray text.
+              -- Toggle on/off once a .go file is open with: <leader>th
+              hints = {
+                assignVariableTypes = true,
+                compositeLiteralFields = true,
+                compositeLiteralTypes = true,
+                constantValues = true,
+                functionTypeParameters = true,
+                parameterNames = true,
+                rangeVariableTypes = true,
+              },
             },
           },
         },
-        jsonls = {},
-        yamlls = {},
+        jsonls = {
+          settings = {
+            json = {
+              -- Validate against well-known schemas (package.json, tsconfig, etc.)
+              schemas = require('schemastore').json.schemas(),
+              validate = { enable = true },
+            },
+          },
+        },
+        yamlls = {
+          settings = {
+            yaml = {
+              -- Disable the built-in schema store (it's stale) and use SchemaStore.nvim
+              -- instead. Auto-matches .gitlab-ci.yml, docker-compose.yml, GitHub Actions, etc.
+              schemaStore = { enable = false, url = '' },
+              schemas = require('schemastore').yaml.schemas(),
+              -- To add repo-local schemas (e.g. when working in ledger-specifications),
+              -- drop a `.nvim.lua` at the project root with:
+              --   vim.lsp.config('yamlls', { settings = { yaml = { schemas = {
+              --     ['./schema/posting_rules_schema.json'] = 'posting_rules.yaml',
+              --   } } } })
+              -- and allow it with `:trust` (or set vim.o.exrc = true).
+            },
+          },
+        },
         dockerls = {},
+        pyright = {
+          -- Pyright handles type info, hover (K), go-to-definition, completions.
+          -- Linting/import-organization is handled by ruff via conform.nvim
+          -- (formatter only, not attached as an LSP). mypy runs via nvim-lint.
+          settings = {
+            python = {
+              analysis = {
+                typeCheckingMode = 'basic',
+                diagnosticMode = 'openFilesOnly',
+              },
+            },
+          },
+        },
       }
 
       -- Also install these tools (formatters, linters) via Mason
       local ensure_installed = vim.tbl_keys(servers or {})
-      vim.list_extend(ensure_installed, { 'stylua' }) -- Lua formatter
+      vim.list_extend(ensure_installed, {
+        'stylua', -- Lua formatter
+        'goimports', -- Go formatter (adds/removes imports automatically)
+        'gofumpt', -- stricter Go formatter (superset of gofmt)
+        'delve', -- Go debugger (used by nvim-dap-go below)
+        'golangci-lint', -- Go linter bundle
+        'yamlfmt', -- YAML formatter (used by conform on save)
+        'yamllint', -- YAML linter (used by nvim-lint on save/open)
+        'protolint', -- Protocol Buffer linter (used by nvim-lint on save/open)
+        'ruff', -- Python formatter (used by conform on save)
+        'mypy', -- Python type checker (used by nvim-lint on save/open)
+      })
       require('mason-tool-installer').setup { ensure_installed = ensure_installed }
+
+      for server_name, server in pairs(servers) do
+        server.capabilities = vim.tbl_deep_extend('force', {}, capabilities, server.capabilities or {})
+        vim.lsp.config(server_name, server)
+      end
 
       require('mason-lspconfig').setup {
         ensure_installed = {},
-        automatic_installation = false,
-        handlers = {
-          function(server_name)
-            local server = servers[server_name] or {}
-            server.capabilities = vim.tbl_deep_extend('force', {}, capabilities, server.capabilities or {})
-            require('lspconfig')[server_name].setup(server)
-          end,
-        },
+        automatic_enable = true,
       }
 
       -- Servers NOT managed by Mason (installed system-wide)
       vim.lsp.config('gleam', { capabilities = capabilities })
-      vim.lsp.enable('gleam')
+      vim.lsp.enable 'gleam'
     end,
   },
 
@@ -749,10 +971,41 @@ require('lazy').setup({
         return { timeout_ms = timeout, lsp_format = 'fallback' }
       end,
       formatters_by_ft = {
-        lua = { 'stylua' },     -- configured in .stylua.toml
+        lua = { 'stylua' }, -- configured in .stylua.toml
         scala = { 'scalafmt' }, -- configured in .scalafmt.conf (in project root)
+        go = { 'goimports', 'gofumpt' }, -- runs in order: organize imports, then format
+        yaml = { 'yamlfmt' }, -- configured in .yamlfmt.yaml at project root (if present)
+        python = { 'ruff_organize_imports', 'ruff_format' }, -- matches the project's `ruff format` / `ruff check` workflow
       },
     },
+  },
+
+  -- --------------------------------------------------------------------------
+  -- Linting (diagnostics from external tools, not from LSP)
+  -- --------------------------------------------------------------------------
+  -- LSP provides diagnostics from language servers (gopls, metals, yamlls…).
+  -- Some tools aren't LSPs but still report errors — e.g. yamllint. nvim-lint
+  -- runs those CLIs on save/open and feeds the results into `vim.diagnostic`,
+  -- so they show up alongside LSP errors in the signcolumn and diagnostics views like `<leader>e` and `<leader>sd`.
+
+  {
+    'mfussenegger/nvim-lint',
+    event = { 'BufReadPost', 'BufWritePost' },
+    config = function()
+      require('lint').linters_by_ft = {
+        yaml = { 'yamllint' }, -- honors .yamllint.yaml at project root
+        proto = { 'protolint' },
+        python = { 'mypy' }, -- pyright handles types via LSP; mypy adds a second pass
+      }
+      vim.api.nvim_create_autocmd({ 'BufReadPost', 'BufWritePost' }, {
+        group = vim.api.nvim_create_augroup('nvim-lint', { clear = true }),
+        callback = function()
+          require('lint').try_lint()
+        end,
+      })
+      -- Lint the buffer that triggered the lazy-load too
+      require('lint').try_lint()
+    end,
   },
 
   -- --------------------------------------------------------------------------
@@ -775,13 +1028,12 @@ require('lazy').setup({
         build = (vim.fn.has 'win32' == 0 and vim.fn.executable 'make' == 1) and 'make install_jsregexp' or nil,
         opts = {},
       },
-      'folke/lazydev.nvim',
     },
     opts = {
       keymap = { preset = 'default' },
       appearance = { nerd_font_variant = 'mono' },
       completion = {
-        menu = { auto_show = true },           -- show completions automatically
+        menu = { auto_show = true }, -- show completions automatically
         list = { selection = { preselect = true, auto_insert = false } },
         documentation = { auto_show = true, auto_show_delay_ms = 200 }, -- show docs popup
       },
@@ -802,18 +1054,99 @@ require('lazy').setup({
   -- Highlights TODO, FIXME, HACK, NOTE comments in your code
   { 'folke/todo-comments.nvim', event = 'VimEnter', dependencies = { 'nvim-lua/plenary.nvim' }, opts = { signs = false } },
 
-  { -- Indent guides (vertical lines showing indentation levels)
-    -- Starts disabled; toggle with <leader>ti
-    'lukas-reineke/indent-blankline.nvim',
-    main = 'ibl',
-    opts = { enabled = false },
+  { -- Zen mode: distraction-free editing in the current window
+    'folke/zen-mode.nvim',
     keys = {
-      { '<leader>ti', '<cmd>IBLToggle<CR>', desc = '[T]oggle [I]ndent guides' },
+      { '<leader>zz', '<cmd>ZenMode<CR>', desc = '[Z]en mode toggle' },
+    },
+    opts = {
+      window = {
+        width = 90,
+        options = {
+          number = false,
+          relativenumber = false,
+          cursorline = false,
+          signcolumn = 'no',
+        },
+      },
+      plugins = {
+        options = {
+          enabled = true,
+          ruler = false,
+          showcmd = false,
+        },
+      },
     },
   },
 
   -- --------------------------------------------------------------------------
-  -- Scala / Metals / DAP (Debug Adapter Protocol)
+  -- DAP (Debug Adapter Protocol) — shared debugger core
+  -- --------------------------------------------------------------------------
+  -- DAP is the same protocol VS Code uses for debugging. Each language plugs
+  -- in its own adapter on top:
+  --   Scala  → nvim-metals registers the adapter on LSP attach (next block)
+  --   Go     → nvim-dap-go registers delve as the adapter (further below)
+  --
+  -- The <leader>d keymaps are defined here once and work across all languages.
+  -- Keys load lazy-on-first-press; the whole debugger doesn't start Neovim.
+  --
+  --   <leader>dc   → Continue (or start) the debugger
+  --   <leader>db   → toggle Breakpoint on current line
+  --   <leader>dso  → Step Over (next line, don't enter functions)
+  --   <leader>dsi  → Step Into (enter the function under the cursor)
+  --   <leader>dr   → toggle the REPL panel (program output + expressions)
+  --   <leader>dK   → hover to show the value of the variable under the cursor
+
+  {
+    'mfussenegger/nvim-dap',
+    keys = {
+      {
+        '<leader>dc',
+        function()
+          require('dap').continue()
+        end,
+        desc = '[D]ebug [C]ontinue/start',
+      },
+      {
+        '<leader>dr',
+        function()
+          require('dap').repl.toggle()
+        end,
+        desc = '[D]ebug [R]EPL (output)',
+      },
+      {
+        '<leader>db',
+        function()
+          require('dap').toggle_breakpoint()
+        end,
+        desc = '[D]ebug toggle [B]reakpoint',
+      },
+      {
+        '<leader>dso',
+        function()
+          require('dap').step_over()
+        end,
+        desc = '[D]ebug [S]tep [O]ver',
+      },
+      {
+        '<leader>dsi',
+        function()
+          require('dap').step_into()
+        end,
+        desc = '[D]ebug [S]tep [I]nto',
+      },
+      {
+        '<leader>dK',
+        function()
+          require('dap.ui.widgets').hover()
+        end,
+        desc = '[D]ebug hover value',
+      },
+    },
+  },
+
+  -- --------------------------------------------------------------------------
+  -- Scala / Metals
   -- --------------------------------------------------------------------------
   -- Metals is the Scala LSP server. It provides the same features as the
   -- generic LSP section above, plus Scala-specific features like:
@@ -833,23 +1166,24 @@ require('lazy').setup({
       local metals = require 'metals'
 
       -- Metals-specific keymaps (<leader>m prefix)
-      vim.keymap.set('n', '<leader>mc', function() require('metals').commands() end, { desc = '[M]etals [C]ommands' })
-      vim.keymap.set('n', '<leader>mo', function() require('metals').organize_imports() end, { desc = '[M]etals [O]rganize imports' })
+      vim.keymap.set('n', '<leader>mc', function()
+        require('metals').commands()
+      end, { desc = '[M]etals [C]ommands' })
+      vim.keymap.set('n', '<leader>mo', function()
+        require('metals').organize_imports()
+      end, { desc = '[M]etals [O]rganize imports' })
       vim.keymap.set('n', '<leader>mr', vim.lsp.codelens.run, { desc = '[M]etals [R]un code lens (run/debug)' })
       vim.keymap.set('n', '<leader>mt', require('metals.tvp').toggle_tree_view, { desc = '[M]etals [T]ree view toggle' })
       vim.keymap.set('n', '<leader>mf', require('metals.tvp').reveal_in_tree, { desc = '[M]etals reveal [F]ile in tree' })
-      vim.keymap.set('n', '<leader>mi', function() require('metals').import_build() end, { desc = '[M]etals [I]mport build' })
+      vim.keymap.set('n', '<leader>mi', function()
+        require('metals').import_build()
+      end, { desc = '[M]etals [I]mport build' })
 
-      -- DAP (debugger) keymaps (<leader>d prefix)
+      -- DAP keymaps (<leader>d) are defined once in the shared nvim-dap block
+      -- further down — they bind the same way for Scala, Go, and any other
+      -- language whose adapter we register. Below we only wire up the
+      -- Scala-specific launch configurations.
       local dap = require 'dap'
-      vim.keymap.set('n', '<leader>dc', dap.continue, { desc = '[D]ebug [C]ontinue/start' })
-      vim.keymap.set('n', '<leader>dr', dap.repl.toggle, { desc = '[D]ebug [R]EPL (output)' })
-      vim.keymap.set('n', '<leader>db', dap.toggle_breakpoint, { desc = '[D]ebug toggle [B]reakpoint' })
-      vim.keymap.set('n', '<leader>dso', dap.step_over, { desc = '[D]ebug [S]tep [O]ver' })
-      vim.keymap.set('n', '<leader>dsi', dap.step_into, { desc = '[D]ebug [S]tep [I]nto' })
-      vim.keymap.set('n', '<leader>dK', require('dap.ui.widgets').hover, { desc = '[D]ebug hover value' })
-
-      -- Debug launch configurations for Scala
       dap.configurations.scala = {
         { type = 'scala', request = 'launch', name = 'Run or Test', metals = { runType = 'runOrTestFile' } },
         { type = 'scala', request = 'launch', name = 'Test Target', metals = { runType = 'testTarget' } },
@@ -900,8 +1234,94 @@ require('lazy').setup({
       })
     end,
   },
+
+  -- --------------------------------------------------------------------------
+  -- Go
+  -- --------------------------------------------------------------------------
+  -- gopls is already configured in the LSP section above with inlay hints,
+  -- staticcheck, gofumpt, postfix completions, and codelenses. That gives you
+  -- the "smart editor" half of the Scala story. This section adds the rest:
+  --
+  --   nvim-dap-go  → auto-wires delve (the Go debugger) as a DAP adapter.
+  --                  No config needed — opening a .go file makes the
+  --                  <leader>d* keymaps work for Go too.
+  --
+  --   neotest      → unified test runner with pass/fail icons in the gutter,
+  --                  a summary panel, and output viewer.
+  --
+  -- Debugging uses the same <leader>d keymaps as Scala (shared DAP block above).
+  -- Test keybindings (<leader>t prefix, filetype-agnostic — will also drive
+  -- other neotest adapters you add later):
+  --
+  --   <leader>tn  → run the [N]earest test (the one under your cursor)
+  --   <leader>tf  → run every test in the current [F]ile
+  --   <leader>ts  → toggle the [S]ummary panel (tree view of all tests)
+  --   <leader>to  → open the [O]utput of the last test run
+
+  { -- Go DAP adapter — zero-config, registers `Debug test`/`Debug main`/`Attach`
+    'leoluz/nvim-dap-go',
+    dependencies = { 'mfussenegger/nvim-dap' },
+    ft = 'go',
+    opts = {}, -- opts = {} with no `config` field means: call .setup({}) automatically
+  },
+
+  { -- Neotest: unified test runner. The Go adapter (neotest-golang) wraps
+    -- `go test` output and also hands off to nvim-dap-go when you run a test
+    -- in debug mode. One interface today for Go; easy to add more languages
+    -- later (e.g. neotest-plenary for Lua, neotest-vitest for JS/TS).
+    'nvim-neotest/neotest',
+    ft = 'go',
+    dependencies = {
+      'nvim-lua/plenary.nvim',
+      'nvim-neotest/nvim-nio',
+      'nvim-treesitter/nvim-treesitter',
+      {
+        'fredrikaverpil/neotest-golang',
+        dependencies = { 'leoluz/nvim-dap-go' }, -- lets neotest drive the debugger
+      },
+    },
+    keys = {
+      {
+        '<leader>tn',
+        function()
+          require('neotest').run.run()
+        end,
+        desc = '[T]est [N]earest',
+      },
+      {
+        '<leader>tf',
+        function()
+          require('neotest').run.run(vim.fn.expand '%')
+        end,
+        desc = '[T]est [F]ile',
+      },
+      {
+        '<leader>ts',
+        function()
+          require('neotest').summary.toggle()
+        end,
+        desc = '[T]est [S]ummary panel',
+      },
+      {
+        '<leader>to',
+        function()
+          require('neotest').output.open { enter = true }
+        end,
+        desc = '[T]est [O]utput',
+      },
+    },
+    config = function()
+      require('neotest').setup {
+        adapters = {
+          require 'neotest-golang' { dap_go_enabled = true },
+        },
+      }
+    end,
+  },
 }, {
   ui = { icons = vim.g.have_nerd_font and {} or nil },
 })
+
+vim.cmd.colorscheme 'kanagawa-dragon'
 
 -- vim: ts=2 sts=2 sw=2 et
