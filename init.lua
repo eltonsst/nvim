@@ -259,6 +259,21 @@ vim.opt.rtp:prepend(lazypath)
 
 require('lazy').setup({
 
+  {
+    'eltonsst/local-review.nvim',
+    tag = 'v0.1.0',
+    config = function()
+      require('local_review').setup {
+        keymap = '<leader>rc',
+      }
+    end,
+  },
+  -- Local plugin development
+  -- {
+  --   dir = '~/learning/local-review.nvim',
+  --   name = 'local-review.nvim',
+  -- },
+
   -- --------------------------------------------------------------------------
   -- Editing helpers
   -- --------------------------------------------------------------------------
@@ -515,6 +530,11 @@ require('lazy').setup({
     end,
   },
 
+  { -- Smooth scrolling for Ctrl-u/d, Ctrl-b/f, Ctrl-y/e, zt/zz/zb
+    'karb94/neoscroll.nvim',
+    opts = {},
+  },
+
   { -- Kanagawa colorscheme (dark, warm Japanese aesthetic)
     'rebelot/kanagawa.nvim',
     priority = 1000, -- load before other plugins so colors are ready
@@ -525,13 +545,32 @@ require('lazy').setup({
         statementStyle = { bold = true },
         colors = { theme = { all = { ui = { bg_gutter = 'none' } } } },
         overrides = function(colors)
+          local ui = colors.theme.ui
+          local syn = colors.theme.syn
           return {
-            NormalFloat = { fg = colors.theme.ui.fg, bg = colors.theme.ui.bg },
-            FloatBorder = { fg = colors.theme.ui.float.fg_border, bg = colors.theme.ui.bg },
-            FloatTitle = { fg = colors.theme.ui.special, bg = colors.theme.ui.bg, bold = true },
-            OilFloat = { fg = colors.theme.ui.fg, bg = colors.theme.ui.bg },
-            OilFloatBorder = { fg = colors.theme.ui.float.fg_border, bg = colors.theme.ui.bg },
-            OilFloatTitle = { fg = colors.theme.ui.special, bg = colors.theme.ui.bg, bold = true },
+            NormalFloat = { fg = ui.fg, bg = ui.bg },
+            FloatBorder = { fg = ui.float.fg_border, bg = ui.bg },
+            FloatTitle = { fg = ui.special, bg = ui.bg, bold = true },
+            OilFloat = { fg = ui.fg, bg = ui.bg },
+            OilFloatBorder = { fg = ui.float.fg_border, bg = ui.bg },
+            OilFloatTitle = { fg = ui.special, bg = ui.bg, bold = true },
+            BlinkCmpMenu = { fg = ui.fg, bg = ui.bg },
+            BlinkCmpMenuBorder = { fg = ui.float.fg_border, bg = ui.bg },
+            BlinkCmpMenuSelection = { fg = ui.fg, bg = ui.bg_p1 },
+            BlinkCmpScrollBarGutter = { bg = ui.bg },
+            BlinkCmpScrollBarThumb = { bg = ui.bg_p2 },
+            BlinkCmpLabel = { fg = ui.fg },
+            BlinkCmpLabelMatch = { fg = syn.fun, bold = true },
+            BlinkCmpLabelDetail = { fg = ui.fg_dim },
+            BlinkCmpLabelDescription = { fg = ui.fg_dim },
+            BlinkCmpSource = { fg = ui.special },
+            BlinkCmpKind = { fg = syn.type },
+            BlinkCmpDoc = { fg = ui.fg, bg = ui.bg },
+            BlinkCmpDocBorder = { fg = ui.float.fg_border, bg = ui.bg },
+            BlinkCmpDocSeparator = { fg = ui.bg_p1, bg = ui.bg },
+            BlinkCmpSignatureHelp = { fg = ui.fg, bg = ui.bg },
+            BlinkCmpSignatureHelpBorder = { fg = ui.float.fg_border, bg = ui.bg },
+            BlinkCmpSignatureHelpActiveParameter = { fg = syn.parameter, bold = true },
           }
         end,
       }
@@ -966,8 +1005,13 @@ require('lazy').setup({
         if disable_filetypes[vim.bo[bufnr].filetype] then
           return nil
         end
-        -- Scala formatting (scalafmt) is slow, give it extra time
-        local timeout = vim.bo[bufnr].filetype == 'scala' and 3000 or 500
+        -- Some formatters are slow enough on real projects that 500ms is too aggressive.
+        -- Give Scala and Go a bit more headroom on save.
+        local filetype = vim.bo[bufnr].filetype
+        local timeout = ({
+          scala = 3000,
+          go = 2000,
+        })[filetype] or 500
         return { timeout_ms = timeout, lsp_format = 'fallback' }
       end,
       formatters_by_ft = {
@@ -1030,12 +1074,19 @@ require('lazy').setup({
       },
     },
     opts = {
-      keymap = { preset = 'default' },
+      keymap = { preset = 'enter' },
       appearance = { nerd_font_variant = 'mono' },
       completion = {
-        menu = { auto_show = true }, -- show completions automatically
+        menu = {
+          auto_show = true,
+          border = 'rounded',
+        }, -- show completions automatically
         list = { selection = { preselect = true, auto_insert = false } },
-        documentation = { auto_show = true, auto_show_delay_ms = 200 }, -- show docs popup
+        documentation = {
+          auto_show = true,
+          auto_show_delay_ms = 200,
+          window = { border = 'rounded' },
+        }, -- show docs popup
       },
       sources = {
         default = { 'lsp', 'path', 'snippets', 'lazydev' },
@@ -1043,7 +1094,10 @@ require('lazy').setup({
       },
       snippets = { preset = 'luasnip' },
       fuzzy = { implementation = 'lua' },
-      signature = { enabled = true }, -- show function signature as you type arguments
+      signature = {
+        enabled = true,
+        window = { border = 'rounded' },
+      }, -- show function signature as you type arguments
     },
   },
 

@@ -74,6 +74,7 @@ There is no `lua/` directory. Everything lives in `init.lua`.
 - Alternate colorscheme installed: `catppuccin`
 - Hover docs on `K` use native Neovim LSP with rounded borders and Kanagawa-matched background
 - Oil opens in a styled floating window on `\`
+- Smooth scrolling is enabled for common movement keys through `neoscroll.nvim`
 - Files auto-save on `BufLeave`, `FocusLost`, and `InsertLeave`
 
 ## Keybindings
@@ -89,6 +90,9 @@ Press `Space` and wait to see available leader mappings through `which-key`.
 | `\` | Toggle floating Oil explorer |
 | `-` | Open parent directory in the current window |
 | `<leader>zz` | Toggle Zen mode |
+| `Ctrl+u/d/b/f` | Smooth half-page / full-page scrolling |
+| `Ctrl+y/e` | Smooth line scrolling |
+| `zt` / `zz` / `zb` | Smooth scroll cursor to top / center / bottom |
 | `[q` / `]q` | Previous / next quickfix item |
 | `<leader>qo` / `<leader>qc` | Open / close quickfix |
 
@@ -204,6 +208,7 @@ Press `Space` and wait to see available leader mappings through `which-key`.
 - [telescope-ui-select.nvim](https://github.com/nvim-telescope/telescope-ui-select.nvim)
 - [bufferline.nvim](https://github.com/akinsho/bufferline.nvim)
 - [mini.nvim](https://github.com/echasnovski/mini.nvim)
+- [neoscroll.nvim](https://github.com/karb94/neoscroll.nvim)
 - [oil.nvim](https://github.com/stevearc/oil.nvim)
 - [zen-mode.nvim](https://github.com/folke/zen-mode.nvim)
 
