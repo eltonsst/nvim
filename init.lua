@@ -1,4 +1,4 @@
--- ============================================================================
+-- ============================================================================ini
 -- Neovim Configuration
 -- ============================================================================
 -- Single-file setup for Scala/Go/Gleam development.
@@ -261,18 +261,12 @@ require('lazy').setup({
 
   {
     'eltonsst/local-review.nvim',
-    tag = 'v0.1.0',
     config = function()
       require('local_review').setup {
         keymap = '<leader>rc',
       }
     end,
   },
-  -- Local plugin development
-  -- {
-  --   dir = '~/learning/local-review.nvim',
-  --   name = 'local-review.nvim',
-  -- },
 
   -- --------------------------------------------------------------------------
   -- Editing helpers
